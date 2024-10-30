@@ -1,0 +1,5 @@
+services:
+
+  goauth:
+    ports:
+      - "8080:80"       # Feel free to use another port than 8080

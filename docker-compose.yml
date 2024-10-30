@@ -1,0 +1,58 @@
+networks:
+  goauth_local:
+    name: goauth_local_network
+    external: true
+
+services:
+  goauth:
+    build:
+      target: prod
+      dockerfile: docker/Dockerfile
+      context: .
+      args:
+        DOCKER_BUILDKIT: 1
+    environment:
+      PORT: 80
+      GIN_MODE: debug
+      MONGODB_HOST: mongodb
+      MONGODB_PORT: ${MONGODB_PORT}
+      MONGODB_NAME: ${MONGODB_NAME}
+    volumes:
+      - ${LOCAL_GOCACHE:-/tmp}:/root/.cache/go-build
+      - ${LOCAL_GOMODCACHE:-/tmp}:/go/pkg/mod
+    networks:
+      default: ~
+      goauth_local:
+        aliases:
+          - goauth.local
+    healthcheck:
+      test: "wget -qO - localhost/ready"
+      start_period: 3s
+      interval: 2s
+      timeout: 2s
+      retries: 5
+    depends_on:
+      mongodb: { condition: service_healthy }
+
+  mongodb:
+    image: mongo:7.0
+    networks:
+      default: ~
+      goauth_local:
+        aliases:
+          - mongodb.local
+    healthcheck:
+      test: "mongosh --eval 'db.runCommand(\"ping\")' --quiet"
+      interval: 2s
+      timeout: 2s
+      retries: 3
+
+  golangci:
+    image: golangci/golangci-lint:v1.57-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+      - ./docker/golangci_entrypoint.sh:/entrypoint
+      - ${LOCAL_GOCACHE:-/tmp}:/root/.cache/go-build
+      - ${LOCAL_GOMODCACHE:-/tmp}:/go/pkg/mod
+    entrypoint: /entrypoint

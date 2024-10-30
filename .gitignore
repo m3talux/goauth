@@ -1,0 +1,8 @@
+.idea
+.vscode
+.project
+.code
+goauth
+coverage.out
+docker-compose.override.yml
+__debug_bin
